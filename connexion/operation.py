@@ -314,6 +314,17 @@ class Operation(SecureOperation):
         return body_parameters[0] if body_parameters else {}
 
     @property
+    def className(self):
+        """
+        Operation className 
+
+        :rtype: types.FunctionType
+        """
+        function = parameter_to_arg(self.parameters, self.__undecorated_function)
+        return self.parameters
+
+
+    @property
     def function(self):
         """
         Operation function with decorators

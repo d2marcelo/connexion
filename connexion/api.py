@@ -16,7 +16,10 @@ import json
 import logging
 import pathlib
 import sys
-
+from django.conf.urls import patterns, include, url
+from django.conf import settings
+settings.configure()
+from rest_framework.routers import DefaultRouter
 import flask
 import jinja2
 import six
@@ -33,7 +36,7 @@ SWAGGER_UI_PATH = MODULE_PATH / 'vendor' / 'swagger-ui'
 SWAGGER_UI_URL = 'ui'
 
 logger = logging.getLogger('connexion.api')
-
+router = DefaultRouter()
 
 def compatibility_layer(spec):
     """Make specs compatible with older versions of Connexion."""
@@ -138,6 +141,11 @@ class Api(object):
         if auth_all_paths:
             self.add_auth_on_not_found()
 
+        print(router.urls)
+        urlpatterns = patterns('',
+            url(r'^api/', include(router.urls)),
+        )
+
     def add_operation(self, method, path, swagger_operation, path_parameters):
         """
         Adds one operation to the api.
@@ -168,11 +176,17 @@ class Api(object):
                               validate_responses=self.validate_responses,
                               resolver=self.resolver)
         operation_id = operation.operation_id
+      
         logger.debug('... Adding %s -> %s', method.upper(), operation_id,
                      extra=vars(operation))
 
-        flask_path = utils.flaskify_path(path, operation.get_path_parameter_types())
-        self.blueprint.add_url_rule(flask_path, operation.endpoint_name, operation.function, methods=[method])
+        if operation_id.find(":") != -1: 
+            router.register(path, operation.function, 'Endpoint')
+        else:
+            flask_path = utils.flaskify_path(path, operation.get_path_parameter_types())
+            self.blueprint.add_url_rule(flask_path, operation.endpoint_name, operation.function, methods=[method])
+        
+       
 
     def add_paths(self, paths=None):
         """
@@ -183,7 +197,6 @@ class Api(object):
         paths = paths or self.specification.get('paths', dict())
         for path, methods in paths.items():
             logger.debug('Adding %s%s...', self.base_url, path)
-
             # search for parameters definitions in the path level
             # http://swagger.io/specification/#pathItemObject
             path_parameters = methods.get('parameters', [])

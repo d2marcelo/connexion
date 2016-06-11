@@ -97,17 +97,30 @@ def get_function_from_name(function_name):
 
     :type function_name: str
     """
-    module_name, attr_path = function_name.rsplit('.', 1)
-    module = None
+    
+    module_name, classWithMethod = function_name.rsplit('.', 1)
+    isClass = False
+    if classWithMethod.find(":") != -1:
+        class_name, attr_path = classWithMethod.split(':')
+        module_name = module_name+"."+class_name
+        isClass = True
+    else:
+        attr_path = classWithMethod
 
+    module = None
+    
     while not module:
         try:
             module = importlib.import_module(module_name)
-        except ImportError:
+        except ImportError as exc:
             module_name, attr_path1 = module_name.rsplit('.', 1)
             attr_path = '{0}.{1}'.format(attr_path1, attr_path)
-    function = deep_getattr(module, attr_path)
-    return function
+    if isClass == True:
+        return deep_getattr(module, attr_path)
+    else:    
+        return deep_getattr(module, attr_path)
+
+    
 
 
 def is_json_mimetype(mimetype):
